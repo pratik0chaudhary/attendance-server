@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu 20.04
+    runs-on: ubuntu-20.04
 
     steps:
     - name: Checkout code
@@ -39,8 +39,8 @@ jobs:
 
     - name: Build and push Django image
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/django-container:latest -f attendance-server/Dockerfile .
-        docker push ${{ secrets.DOCKER_USERNAME }}/django-container:latest
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/django-app:latest -f attendance-server/Dockerfile .
+        docker push ${{ secrets.DOCKER_USERNAME }}/django-app:latest
 
     - name: Build and push Nginx image
       run: |
@@ -54,7 +54,20 @@ jobs:
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          docker pull ${{ secrets.DOCKER_USERNAME }}/django-app:latest
           docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+
+          docker network create attendance-network || true
+
+          docker stop django-container || true
+          docker rm django-container || true
+          docker run -d --name django-container --network attendance-network \
+            -e DJANGO_SETTINGS_MODULE=your_project.settings \
+            -e DEBUG=False \
+            -e ALLOWED_HOSTS=yourdomain.com \
+            ${{ secrets.DOCKER_USERNAME }}/django-app:latest
+
           docker stop nginx-container || true
           docker rm nginx-container || true
-          docker run -d --name nginx-container -p 80:80 ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+          docker run -d --name nginx-container --network attendance-network -p 80:80 \
+            ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
