@@ -39,8 +39,8 @@ jobs:
 
     - name: Build and push Django image
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/django-app:latest -f attendance-server/Dockerfile .
-        docker push ${{ secrets.DOCKER_USERNAME }}/django-app:latest
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/django-container1:latest -f attendance-server/Dockerfile .
+        docker push ${{ secrets.DOCKER_USERNAME }}/django-container1:latest
 
     - name: Build and push Nginx image
       run: |
@@ -54,18 +54,15 @@ jobs:
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/django-app:latest
+          docker pull ${{ secrets.DOCKER_USERNAME }}/django-container1:latest
           docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
 
           docker network create attendance-network || true
 
           docker stop django-container || true
           docker rm django-container || true
-          docker run -d --name django-container --network attendance-network \
-            -e DJANGO_SETTINGS_MODULE=your_project.settings \
-            -e DEBUG=False \
-            -e ALLOWED_HOSTS=yourdomain.com \
-            ${{ secrets.DOCKER_USERNAME }}/django-app:latest
+          docker run -d --name django-container1 --network attendance-network \
+            ${{ secrets.DOCKER_USERNAME }}/django-container1:latest
 
           docker stop nginx-container || true
           docker rm nginx-container || true
