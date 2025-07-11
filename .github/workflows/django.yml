@@ -2,32 +2,13 @@ name: attendance
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-24.04.2
+    runs-on: ubuntu-24.0.4.2
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Python 3.8.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.8.10
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: Run Django tasks
-      run: |
-        python manage.py collectstatic --noinput
-        python manage.py migrate
-        python manage.py test
-
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -36,11 +17,6 @@ jobs:
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Build and push Django image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/django-container1:latest -f attendance-server/Dockerfile .
-        docker push ${{ secrets.DOCKER_USERNAME }}/django-container1:latest
 
     - name: Build and push Nginx image
       run: |
@@ -53,18 +29,32 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/django-container1:latest
-          docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+        
+    - name: Create and run virtual environment 
+      run: |
+        cd home/pratik/githubaction_prac/attendance-server-master/attendance-server
+        cd usr/src/Python-3.8.2
+        python3 -m venv git
+        source git/bin/activate
 
-          docker network create attendance-network || true
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-          docker stop django-container || true
-          docker rm django-container || true
-          docker run -d --name django-container1 --network attendance-network \
-            ${{ secrets.DOCKER_USERNAME }}/django-container1:latest
+    - name: Run deployment script   
+      run: |
+        python manage.py collectstatic --noinput
+        python manage.py makemigrations
+        python manage.py migrate
+        python manage.py createsuperuser --noinput --username pratik 
+        pkill gunicorn || true
+        gunicorn --bind 0.0.0.0:8000 main.wsgi:application --workers 3 --daemon
 
-          docker stop nginx-container || true
-          docker rm nginx-container || true
-          docker run -d --name nginx-container --network attendance-network -p 80:80 \
-            ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+    - name: Pull and run Nginx container
+      run: |
+        docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+        docker stop nginx-container || true
+        docker rm nginx-container || true
+        docker run -d --name nginx-container -p 80:80 \
+        ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
