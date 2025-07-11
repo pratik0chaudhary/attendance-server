@@ -27,7 +27,6 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
         script: |
           cd /home/pratik/githubaction_prac/attendance-server-master/attendance-server
           python3 -m venv git
