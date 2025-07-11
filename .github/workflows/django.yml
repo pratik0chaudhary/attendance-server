@@ -26,7 +26,6 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /home/pratik/githubaction_prac/attendance-server-master/attendance-server
-          cd /usr/src/Python-3.8.2
           python3 -m venv git
           source git/bin/activate
 
@@ -36,14 +35,20 @@ jobs:
           python manage.py collectstatic --noinput
           python manage.py makemigrations
           python manage.py migrate
-          python manage.py createsuperuser --noinput --username pratik 
+          python manage.py createsuperuser --noinput --username pratik || true
 
           pkill gunicorn || true
           gunicorn --bind 0.0.0.0:8000 main.wsgi:application --workers 3 --daemon
-          
-     - name: Deploy and run Nginx via Docker      
+
+    - name: Deploy and run Nginx via Docker
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
           docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
           docker stop nginx-container || true
           docker rm nginx-container || true
           docker run -d --name nginx-container -p 80:80 \
-          ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+            ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
