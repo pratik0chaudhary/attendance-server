@@ -39,8 +39,8 @@ jobs:
 
     - name: Build and push Django image
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/django-app:latest -f attendance-server/Dockerfile .
-        docker push ${{ secrets.DOCKER_USERNAME }}/django-app:latest
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/django-container:latest -f attendance-server/Dockerfile .
+        docker push ${{ secrets.DOCKER_USERNAME }}/django-container:latest
 
     - name: Build and push Nginx image
       run: |
