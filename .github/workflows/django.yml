@@ -18,10 +18,10 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and push Nginx image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest -f attendance-server/Dockerfile attendance-server/
-        docker push ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+    # - name: Build and push Nginx image
+    #   run: |
+    #     docker build -t ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest -f attendance-server/Dockerfile attendance-server/
+    #     docker push ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
 
     - name: Deploy to server via SSH
       uses: appleboy/ssh-action@master
@@ -36,9 +36,6 @@ jobs:
         cd usr/src/Python-3.8.2
         python3 -m venv git
         source git/bin/activate
-
-    - name: Install dependencies
-      run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
