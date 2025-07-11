@@ -42,14 +42,23 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and push Django image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/django-app:latest \ -f attendance-server/Dockerfile .
-        docker push ${{ secrets.DOCKER_USERNAME }}/django-app:latest
+  run: |
+    docker build -t ${{ secrets.DOCKER_USERNAME }}/django-app:latest -f attendance-server/Dockerfile .
+    docker push ${{ secrets.DOCKER_USERNAME }}/django-app:latest
 
-    - name: Build and push Nginx image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest \ -f attendance-server/Dockerfile attendance-server/
-        docker push ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+- name: Build and push Nginx image
+  run: |
+    docker build -t ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest -f attendance-server/Dockerfile attendance-server/
+    docker push ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+
+
+
+
+
+
+
+
+
 
     - name: Deploy to server via SSH
       uses: appleboy/ssh-action@master
