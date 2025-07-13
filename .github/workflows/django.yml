@@ -36,7 +36,7 @@ jobs:
           python manage.py collectstatic --noinput
           python manage.py makemigrations
           python manage.py migrate
-          python manage.py createsuperuser --noinput --username pratik --email pratiktharu922@gamil.com --password QWE123!@# || true
+          python manage.py createsuperuser --username pratik --email pratiktharu922@gamil.com --password QWE123!@#
 
           pkill gunicorn || true
           gunicorn --bind 0.0.0.0:8000 main.wsgi:application --workers 3 --daemon
