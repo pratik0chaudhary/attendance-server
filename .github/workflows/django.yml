@@ -26,7 +26,6 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/pratik
             cd /home/pratik/githubaction_prac/attendance-server-master/attendance-server
             python3.8 -m venv git
             source git/bin/activate
