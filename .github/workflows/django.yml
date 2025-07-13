@@ -52,5 +52,5 @@ jobs:
           docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
           docker stop nginx-container || true
           docker rm nginx-container || true
-          docker run -d --name nginx-container -p 80:80 \
+          docker run -d --name nginx-container -p 8080:80 \
             ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
