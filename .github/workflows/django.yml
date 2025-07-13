@@ -1,4 +1,4 @@
-name: attendance1
+name: attendance
 
 on:
   push:
