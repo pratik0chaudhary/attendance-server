@@ -1,4 +1,4 @@
-name: attendance
+name: attendance-server-deploy
 
 on:
   push:
@@ -6,65 +6,61 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-24.04.2
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Set up Python 3.8.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.8.10
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Run setup on server via SSH (Create venv and install dependencies)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/pratik
+            cd /home/pratik/githubaction_prac/attendance-server-master/attendance-server
+            python3.8 -m venv git
+            source git/bin/activate
 
-    - name: Run Django tasks
-      run: |
-        python manage.py collectstatic --noinput
-        python manage.py migrate
-        python manage.py test
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+            python manage.py collectstatic --noinput
+            python manage.py makemigrations
+            python manage.py migrate
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+            python manage.py shell << EOF
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            username = '${{ secrets.DJANGO_SUPERUSER_USERNAME }}'
+            email = '${{ secrets.DJANGO_SUPERUSER_EMAIL }}'
+            password = '${{ secrets.DJANGO_SUPERUSER_PASSWORD }}'
+            if not User.objects.filter(username=username).exists():
+                User.objects.create_superuser(username=username, email=email, password=password) 
+            EOF
 
-    - name: Build and push Django image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/django-container1:latest -f attendance-server/Dockerfile .
-        docker push ${{ secrets.DOCKER_USERNAME }}/django-container1:latest
+            pkill gunicorn || true
+            gunicorn --bind 0.0.0.0:8000 main.wsgi:application --workers 3 --daemon
 
-    - name: Build and push Nginx image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest -f attendance-server/Dockerfile attendance-server/
-        docker push ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
-
-    - name: Deploy to server via SSH
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/django-container1:latest
-          docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
-
-          docker network create attendance-network || true
-
-          docker stop django-container || true
-          docker rm django-container || true
-          docker run -d --name django-container1 --network attendance-network \
-            ${{ secrets.DOCKER_USERNAME }}/django-container1:latest
-
-          docker stop nginx-container || true
-          docker rm nginx-container || true
-          docker run -d --name nginx-container --network attendance-network -p 80:80 \
+      - name: Deploy and run Nginx via Docker
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+           docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
+           docker stop nginx-container || true
+           docker rm nginx-container || true
+           docker run -d --name nginx-container -p 8080:80 \
             ${{ secrets.DOCKER_USERNAME }}/nginx-app:latest
