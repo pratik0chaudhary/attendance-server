@@ -27,10 +27,11 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /home/pratik/githubaction_prac/attendance-server-master/attendance-server
-
+          
           sudo apt update
           sudo apt install -y libpq-dev gcc python3-dev
-
+          
+          cd /usr/src/Python-3.8.2
           python3 -m venv git
           source git/bin/activate
 
