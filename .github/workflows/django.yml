@@ -43,9 +43,7 @@ jobs:
             User = get_user_model()
             username = '${{ secrets.DJANGO_SUPERUSER_USERNAME }}'
             email = '${{ secrets.DJANGO_SUPERUSER_EMAIL }}'
-            password = '${{ secrets.DJANGO_SUPERUSER_PASSWORD }}'
-            if not User.objects.filter(username=username).exists():
-                User.objects.create_superuser(username=username, email=email, password=password) 
+            password = '${{ secrets.DJANGO_SUPERUSER_PASSWORD }}' 
             EOF
 
             pkill gunicorn || true
