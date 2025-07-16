@@ -1,4 +1,4 @@
-name: attendance-server-deploy
+name: attendance-server-deploy1
 
 on:
   push:
